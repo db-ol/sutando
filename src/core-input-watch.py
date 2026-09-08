@@ -415,6 +415,9 @@ _TUI_SOURCE = "tui"
 DRIVE_SETTLE_S = 15.0
 
 
+from prompt_excerpt import prompt_excerpt  # noqa: E402  (shared with core-supervisor-relay)
+
+
 def escalation_message(state, detail, kind, prompt):
     """The card body. The core is blocked, so this is the only thing that will
     reach the owner until they act."""
@@ -424,9 +427,11 @@ def escalation_message(state, detail, kind, prompt):
     lines = [head, "", f"State: {state} — {detail}"]
     if kind and kind != "unknown":
         lines.append(f"Gate: {kind}")
-    if prompt:
-        excerpt = "\n".join(prompt.strip().splitlines()[-6:])
-        lines += ["", "What the terminal is showing:", "```", excerpt, "```"]
+    excerpt = prompt_excerpt(prompt) if prompt else []
+    if excerpt:
+        # Plain lines, not a code fence: the card renders text, and the prompt is what the owner
+        # needs to read, not the pane's chrome around it.
+        lines += ["", "What the terminal is showing:"] + [f"  {ln}" for ln in excerpt]
     lines += ["", "Open the Runtime panel (or the core's terminal) and answer it. "
                   "Nothing else I do can clear this one."]
     return "\n".join(lines)

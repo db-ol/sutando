@@ -36,7 +36,7 @@
     "sandbox": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Read-only sandbox that answers non-owner (team/other) Discord tasks. Codex by default. Set gemini on an install without Codex CLI, which needs the gemini CLI on PATH and GEMINI_API_KEY (or other gemini auth) in .env. SUTANDO_SANDBOX_RUNTIME env var overrides per-invocation.",
+      "description": "Read-only sandbox that answers non-owner (team/guest) Discord tasks. Codex by default. Set gemini on an install without Codex CLI, which needs the gemini CLI on PATH and GEMINI_API_KEY (or other gemini auth) in .env. SUTANDO_SANDBOX_RUNTIME env var overrides per-invocation.",
       "properties": {
         "runtime": {
           "type": "string",

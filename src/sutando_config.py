@@ -79,7 +79,7 @@ _OBJECT_TOP_LEVEL_KEYS = {
 }
 
 _SUPPORTED_CORE_RUNTIMES = {"claude", "codex"}
-# The read-only sandbox that answers non-owner (team/other) tasks. Codex is the
+# The read-only sandbox that answers non-owner (team/guest) tasks. Codex is the
 # default; gemini is for installs without Codex CLI (docs/gemini-sandbox.md).
 _SUPPORTED_SANDBOX_RUNTIMES = {"codex", "gemini"}
 
@@ -599,7 +599,7 @@ _LEGACY_CLAUDE_SUBDIR_WARN_PRINTED = False
 
 
 def resolve_sandbox_runtime(repo_root: Optional[Path] = None) -> str:
-    """Return the sandbox runtime that answers non-owner (team/other) tasks.
+    """Return the sandbox runtime that answers non-owner (team/guest) tasks.
 
     ``SUTANDO_SANDBOX_RUNTIME`` is an invocation-scoped override. Otherwise
     ``sandbox.runtime`` is read from merged config. Codex remains the default so

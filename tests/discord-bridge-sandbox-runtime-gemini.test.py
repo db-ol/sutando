@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """sandbox.runtime: gemini must swap the non-owner Stage-1 command and nothing else.
 
-An install without Codex sends every team/other task into the Stage-2 fallback
+An install without Codex sends every team/guest task into the Stage-2 fallback
 sentinel. With the runtime set to gemini the rulebooks delegate to the Gemini CLI
 through gemini-sandbox.sh, which keeps codex's `-o FILE -- PROMPT` contract, so Stage 2
 and the fallback are unchanged. The codex rulebooks must stay byte identical, and the
@@ -65,7 +65,7 @@ check(hasattr(mod, "_tier_rulebooks"), "the rulebooks are built by a function th
 # The live text, exactly as the handler builds it.
 books = mod._tier_rulebooks('"$(cat /tmp/p)"')
 results = str(mod.RESULTS_DIR)
-check(set(books) == {"owner", "team-collaborator", "team", "other"}, "four rulebooks, as before")
+check(set(books) == {"owner", "team-collaborator", "team", "guest"}, "four rulebooks, as before")
 check(books["owner"] == "" and "gemini" not in books["team-collaborator"].lower(),
       "owner and collaborator books carry no sandbox wording")
 
@@ -73,12 +73,12 @@ check(books["owner"] == "" and "gemini" not in books["team-collaborator"].lower(
 check(mod._apply_sandbox_runtime(books, "codex") is books, "codex hands the dict back untouched")
 check(mod._render_sandbox_rulebook(books["team"], "codex", tier="team") == books["team"],
       "codex rendering is the identity (team)")
-check(mod._render_sandbox_rulebook(books["other"], "codex", tier="other") == books["other"],
+check(mod._render_sandbox_rulebook(books["guest"], "codex", tier="guest") == books["guest"],
       "codex rendering is the identity (other)")
 
 # Gemini, on the live text, with the repo path the bridge would use.
 team = mod._render_sandbox_rulebook(books["team"], "gemini", tier="team")
-other = mod._render_sandbox_rulebook(books["other"], "gemini", tier="other")
+other = mod._render_sandbox_rulebook(books["guest"], "gemini", tier="guest")
 check(f"bash skills/claude-gemini/scripts/gemini-sandbox.sh --cd {mod.REPO} -o {results}/.codex-staging-{{id}}.txt -- " in team,
       "team Stage 1 becomes the gemini wrapper in the workspace, same -o and prompt")
 check("codex-bounded.sh --stall 45 --max 240 -- bash skills/claude-gemini" in team,
@@ -109,16 +109,16 @@ check(f"--cd {long_repo} -o" in team_long, "and the long path is the one the wra
 reworded = books["team"].replace("2b. MESSAGE OWNER", "2b. NOTIFY THE OWNER")
 raises(lambda: mod._render_sandbox_rulebook(reworded, "gemini", tier="team"),
        "a reworded PR-review heading raises, naming the markers", "PR-review paragraph markers")
-raises(lambda: mod._render_sandbox_rulebook(books["other"] + "2. PR-REVIEW REQUEST stray\n", "gemini", tier="other"),
+raises(lambda: mod._render_sandbox_rulebook(books["guest"] + "2. PR-REVIEW REQUEST stray\n", "gemini", tier="guest"),
        "a PR-review marker in the other rulebook raises", "other rulebook")
 drifted = books["team"].replace("--stall 45 --max 240 -- codex exec", "--stall 60 --max 240 -- codex exec", 1)
 raises(lambda: mod._render_sandbox_rulebook(drifted, "gemini", tier="team"),
        "a one token drift in the team Stage-1 text raises instead of renaming codex exec", "found 0 time(s)")
-drifted_other = books["other"].replace("-C /tmp -o", "-C /var/tmp -o", 1)
-raises(lambda: mod._render_sandbox_rulebook(drifted_other, "gemini", tier="other"),
+drifted_other = books["guest"].replace("-C /tmp -o", "-C /var/tmp -o", 1)
+raises(lambda: mod._render_sandbox_rulebook(drifted_other, "gemini", tier="guest"),
        "a one token drift in the other Stage-1 text raises too", "found 0 time(s)")
-doubled = books["other"] + "\n" + mod._CODEX_STAGE1_OTHER.format(results=results) + "x < /dev/null\n"
-raises(lambda: mod._render_sandbox_rulebook(doubled, "gemini", tier="other"),
+doubled = books["guest"] + "\n" + mod._CODEX_STAGE1_GUEST.format(results=results) + "x < /dev/null\n"
+raises(lambda: mod._render_sandbox_rulebook(doubled, "gemini", tier="guest"),
        "two Stage-1 commands raise, exactly one is the contract", "found 2 time(s)")
 raises(lambda: mod._render_sandbox_rulebook(books["team"], "gemini", tier="owner"),
        "an owner tier is refused by the renderer")
@@ -131,12 +131,12 @@ check(mod._render_sandbox_rulebook(reworded, "codex", tier="team") == reworded,
 sel = mod._select_rulebook
 check(sel(books, "owner") == "", "owner messages get the owner book, untouched")
 check(sel(books, "team-collaborator") == books["team-collaborator"], "collaborator messages get theirs, untouched")
-check("gemini-sandbox.sh" in sel(books, "team") and "gemini-sandbox.sh --cd /tmp" in sel(books, "other"),
+check("gemini-sandbox.sh" in sel(books, "team") and "gemini-sandbox.sh --cd /tmp" in sel(books, "guest"),
       "team and other messages get rendered books")
-check(sel(books, "nonsense") == sel(books, "other"), "an unknown key falls back to other, as the handler did")
+check(sel(books, "nonsense") == sel(books, "guest"), "an unknown key falls back to guest, as the handler did")
 check(sel(books, "team", runtime="codex") == books["team"], "with codex the selection is the identity")
 broken = dict(books, team=reworded)
-check(sel(broken, "owner") == "" and sel(broken, "other") == sel(books, "other"),
+check(sel(broken, "owner") == "" and sel(broken, "guest") == sel(books, "guest"),
       "a broken team book does not touch owner or other messages")
 raises(lambda: sel(broken, "team"), "and the team message itself raises rather than carrying nonsense")
 
